@@ -19,62 +19,65 @@ import ContactPage from "./routes/contact";
 import ServicesPage from "./routes/services";
 import { MockAuthProvider } from "./provider/mock-auth-provider";
 
+// Check if we're using mock credentials (in any environment)
+const useMockAuth = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
+  !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Log authentication mode for debugging
+console.info(`App using ${useMockAuth ? 'mock' : 'Clerk'} authentication`);
+
 const App = () => {
-  // Check if we're in development mode with mock credentials
-  const isDevelopmentMode = import.meta.env.DEV &&
-    (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
-     !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+  // Define the routes configuration
+  const appRoutes = (
+    <Routes>
+      {/* public routes */}
+      <Route element={<PublicLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+      </Route>
 
-  // Render the app with or without the MockAuthProvider based on environment
-  const appContent = (
-    <Router>
-      <Routes>
-        {/* public routes */}
-        <Route element={<PublicLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-        </Route>
+      {/* authentication layout */}
+      <Route element={<AuthenticationLayout />}>
+        <Route path="/signin/*" element={<SignInPage />} />
+        <Route path="/signup/*" element={<SignUpPage />} />
+      </Route>
 
-        {/* authentication layout */}
-        <Route element={<AuthenticationLayout />}>
-          <Route path="/signin/*" element={<SignInPage />} />
-          <Route path="/signup/*" element={<SignUpPage />} />
+      {/* protected routes */}
+      <Route
+        element={
+          <ProtectRoutes>
+            <MainLayout />
+          </ProtectRoutes>
+        }
+      >
+        {/* add all the protect routes */}
+        <Route element={<Generate />} path="/generate">
+          <Route index element={<Dashboard />} />
+          <Route path="create" element={<CreateEditPage />} />
+          <Route path=":interviewId" element={<CreateEditPage />} />
+          <Route path="interview/:interviewId" element={<MockLoadPage />} />
+          <Route
+            path="interview/:interviewId/start"
+            element={<MockInterviewPage />}
+          />
+          <Route path="feedback/:interviewId" element={<Feedback />} />
         </Route>
-
-        {/* protected routes */}
-        <Route
-          element={
-            <ProtectRoutes>
-              <MainLayout />
-            </ProtectRoutes>
-          }
-        >
-          {/* add all the protect routes */}
-          <Route element={<Generate />} path="/generate">
-            <Route index element={<Dashboard />} />
-            <Route path="create" element={<CreateEditPage />} />
-            <Route path=":interviewId" element={<CreateEditPage />} />
-            <Route path="interview/:interviewId" element={<MockLoadPage />} />
-            <Route
-              path="interview/:interviewId/start"
-              element={<MockInterviewPage />}
-            />
-            <Route path="feedback/:interviewId" element={<Feedback />} />
-          </Route>
-        </Route>
-      </Routes>
-    </Router>
+      </Route>
+    </Routes>
   );
 
-  // If in development mode, wrap with MockAuthProvider
-  if (isDevelopmentMode) {
-    return <MockAuthProvider>{appContent}</MockAuthProvider>;
-  }
-
-  // Otherwise, return the app content directly
-  return appContent;
+  // Render the app with the appropriate wrapper based on authentication mode
+  return (
+    <Router>
+      {useMockAuth ? (
+        <MockAuthProvider>{appRoutes}</MockAuthProvider>
+      ) : (
+        appRoutes
+      )}
+    </Router>
+  );
 };
 
 export default App;

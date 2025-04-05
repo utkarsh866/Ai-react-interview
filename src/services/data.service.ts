@@ -1,16 +1,16 @@
 import { Interview, User, UserAnswer } from "@/types";
-import { db, isDevelopmentMode } from "@/config/firebase.config";
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  addDoc, 
-  updateDoc, 
-  query, 
-  where, 
-  serverTimestamp 
+import { db, useMockFirebase } from "@/config/firebase.config";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  updateDoc,
+  query,
+  where,
+  serverTimestamp
 } from "firebase/firestore";
 import { mockDataService } from "./mock-data.service";
 
@@ -18,10 +18,10 @@ import { mockDataService } from "./mock-data.service";
 const dataService = {
   // Get user by ID
   getUser: async (userId: string): Promise<User | null> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.getUser(userId);
     }
-    
+
     try {
       const userDoc = await getDoc(doc(db, "users", userId));
       return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } as User : null;
@@ -30,10 +30,10 @@ const dataService = {
       return null;
     }
   },
-  
+
   // Create or update user
   setUser: async (userId: string, userData: Omit<User, 'id' | 'createdAt' | 'updateAt'>): Promise<void> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.setUser(userId, {
         id: userId,
         ...userData,
@@ -41,7 +41,7 @@ const dataService = {
         updateAt: serverTimestamp()
       } as User);
     }
-    
+
     try {
       await setDoc(doc(db, "users", userId), {
         ...userData,
@@ -53,19 +53,19 @@ const dataService = {
       throw error;
     }
   },
-  
+
   // Get interviews for a user
   getUserInterviews: async (userId: string): Promise<Interview[]> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.getUserInterviews(userId);
     }
-    
+
     try {
       const interviewQuery = query(
         collection(db, "interviews"),
         where("userId", "==", userId)
       );
-      
+
       const snapshot = await getDocs(interviewQuery);
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -76,13 +76,13 @@ const dataService = {
       return [];
     }
   },
-  
+
   // Get interview by ID
   getInterview: async (interviewId: string): Promise<Interview | null> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.getInterview(interviewId);
     }
-    
+
     try {
       const interviewDoc = await getDoc(doc(db, "interviews", interviewId));
       return interviewDoc.exists() ? { id: interviewDoc.id, ...interviewDoc.data() } as Interview : null;
@@ -91,13 +91,13 @@ const dataService = {
       return null;
     }
   },
-  
+
   // Create a new interview
   createInterview: async (interview: Omit<Interview, 'id' | 'createdAt' | 'updateAt'>): Promise<string> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.createInterview(interview);
     }
-    
+
     try {
       const docRef = await addDoc(collection(db, "interviews"), {
         ...interview,
@@ -110,13 +110,13 @@ const dataService = {
       throw error;
     }
   },
-  
+
   // Update an interview
   updateInterview: async (interviewId: string, data: Partial<Interview>): Promise<void> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.updateInterview(interviewId, data);
     }
-    
+
     try {
       await updateDoc(doc(db, "interviews", interviewId), {
         ...data,
@@ -127,19 +127,19 @@ const dataService = {
       throw error;
     }
   },
-  
+
   // Get user answers for an interview
   getUserAnswers: async (interviewId: string): Promise<UserAnswer[]> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.getUserAnswers(interviewId);
     }
-    
+
     try {
       const answersQuery = query(
         collection(db, "userAnswers"),
         where("mockIdRef", "==", interviewId)
       );
-      
+
       const snapshot = await getDocs(answersQuery);
       return snapshot.docs.map(doc => ({
         id: doc.id,
@@ -150,13 +150,13 @@ const dataService = {
       return [];
     }
   },
-  
+
   // Save a user answer
   saveUserAnswer: async (answer: Omit<UserAnswer, 'id' | 'createdAt' | 'updateAt'>): Promise<string> => {
-    if (isDevelopmentMode) {
+    if (useMockFirebase) {
       return mockDataService.saveUserAnswer(answer);
     }
-    
+
     try {
       const docRef = await addDoc(collection(db, "userAnswers"), {
         ...answer,

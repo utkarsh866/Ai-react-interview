@@ -1,39 +1,50 @@
 import { LoaderPage } from "@/routes/loader-page";
-import { User } from "@/types";
 import { useAuth as useClerkAuth, useUser as useClerkUser } from "@clerk/clerk-react";
-import { useMockAuth } from "@/provider/mock-auth-provider";
+import { useMockAuth as useMockAuthHook } from "@/provider/mock-auth-provider";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import dataService from "@/services/data.service";
 
+// Check if we're using mock credentials (in any environment)
+const shouldUseMockAuth = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
+  !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Log authentication mode for debugging
+console.info(`AuthHandler using ${shouldUseMockAuth ? 'mock' : 'Clerk'} authentication`);
+
 // Custom hook to safely use auth in both development and production
-export const useAuthSafe = () => {
-  // Check if we're in development mode with mock credentials
-  const isDevelopmentMode = import.meta.env.DEV &&
-    (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
-     !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+export function useAuthSafe() {
+  // Use mock auth when needed
+  const mockAuthContext = useMockAuthHook();
 
-  // Use mock auth in development mode
-  const mockAuth = useMockAuth();
-
-  // Only try to use Clerk auth if not in development mode
-  let clerkAuth = { isSignedIn: false, isLoaded: true, userId: null };
-  let clerkUser = { user: null };
+  // Only try to use Clerk auth if we have valid credentials
+  let clerkAuth: { isSignedIn: boolean; isLoaded: boolean; userId: string | null } = { isSignedIn: false, isLoaded: true, userId: null };
+  let clerkUser: { user: any } = { user: null };
 
   try {
-    if (!isDevelopmentMode) {
-      clerkAuth = useClerkAuth();
-      clerkUser = useClerkUser();
+    if (!shouldUseMockAuth) {
+      const auth = useClerkAuth();
+      clerkAuth = {
+        isSignedIn: !!auth.isSignedIn,
+        isLoaded: !!auth.isLoaded,
+        userId: auth.userId || null
+      };
+
+      const userInfo = useClerkUser();
+      clerkUser = {
+        user: userInfo.user || null
+      };
     }
   } catch (error) {
-    console.log('Using mock auth in development mode');
+    console.log('Error using Clerk auth, falling back to mock auth:', error);
   }
 
   return {
-    isSignedIn: isDevelopmentMode ? mockAuth.isSignedIn : clerkAuth.isSignedIn,
-    userId: isDevelopmentMode ? mockAuth.userId : clerkAuth.userId,
-    user: isDevelopmentMode ? {
-      id: mockAuth.userId || 'dev-user',
+    isSignedIn: shouldUseMockAuth ? mockAuthContext.isSignedIn : clerkAuth.isSignedIn,
+    isLoaded: shouldUseMockAuth ? mockAuthContext.isLoaded : clerkAuth.isLoaded,
+    userId: shouldUseMockAuth ? mockAuthContext.userId : clerkAuth.userId,
+    user: shouldUseMockAuth ? {
+      id: mockAuthContext.userId || 'dev-user',
       fullName: 'Development User',
       firstName: 'Development',
       imageUrl: '',

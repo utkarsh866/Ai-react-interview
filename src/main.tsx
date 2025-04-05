@@ -25,9 +25,16 @@ if (!rootElement) {
   throw new Error("Root element not found. Make sure there is a div with id 'root' in your HTML.");
 }
 
-// In development mode without a valid key, render the app without Clerk
-if (isDevelopment && (!PUBLISHABLE_KEY || PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345')) {
-  console.info("Running in development mode without Clerk authentication");
+// Check if we have a valid publishable key
+const hasValidKey = PUBLISHABLE_KEY && PUBLISHABLE_KEY !== 'pk_test_mock_clerk_key_12345';
+
+// Log the environment and key status (for debugging)
+console.info(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
+console.info(`Clerk key status: ${hasValidKey ? 'Valid key present' : 'Using mock authentication'}`);
+
+// Decide whether to use Clerk or mock authentication
+if (!hasValidKey) {
+  console.info("Running without Clerk authentication - using mock auth");
 
   createRoot(rootElement).render(
     <StrictMode>
@@ -36,7 +43,8 @@ if (isDevelopment && (!PUBLISHABLE_KEY || PUBLISHABLE_KEY === 'pk_test_mock_cler
     </StrictMode>
   );
 } else {
-  // In production or with a valid key, use Clerk authentication
+  // With a valid key, use Clerk authentication
+  console.info("Using Clerk authentication");
   createRoot(rootElement).render(
     <StrictMode>
       <ClerkProvider

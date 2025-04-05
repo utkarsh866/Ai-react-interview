@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { db } from "@/config/firebase.config";
 import { Interview } from "@/types";
-import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { LoaderPage } from "./loader-page";
@@ -11,6 +9,7 @@ import { Lightbulb, Sparkles, WebcamIcon } from "lucide-react";
 import { InterviewPin } from "@/components/pin";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import WebCam from "react-webcam";
+import dataService from "@/services/data.service";
 
 export const MockLoadPage = () => {
   const { interviewId } = useParams<{ interviewId: string }>();
@@ -21,22 +20,20 @@ export const MockLoadPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setIsLoading(true);
     const fetchInterview = async () => {
-      if (interviewId) {
-        try {
-          const interviewDoc = await getDoc(doc(db, "interviews", interviewId));
-          if (interviewDoc.exists()) {
-            setInterview({
-              id: interviewDoc.id,
-              ...interviewDoc.data(),
-            } as Interview);
-          }
-        } catch (error) {
-          console.log(error);
-        } finally {
-          setIsLoading(false);
-        }
+      if (!interviewId) {
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const interviewData = await dataService.getInterview(interviewId);
+        setInterview(interviewData);
+      } catch (error) {
+        console.log('Error fetching interview:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 

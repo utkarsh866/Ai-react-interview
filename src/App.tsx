@@ -17,9 +17,16 @@ import { Feedback } from "./routes/feedback";
 import AboutPage from "./routes/about";
 import ContactPage from "./routes/contact";
 import ServicesPage from "./routes/services";
+import { MockAuthProvider } from "./provider/mock-auth-provider";
 
 const App = () => {
-  return (
+  // Check if we're in development mode with mock credentials
+  const isDevelopmentMode = import.meta.env.DEV &&
+    (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
+     !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+
+  // Render the app with or without the MockAuthProvider based on environment
+  const appContent = (
     <Router>
       <Routes>
         {/* public routes */}
@@ -47,6 +54,7 @@ const App = () => {
           {/* add all the protect routes */}
           <Route element={<Generate />} path="/generate">
             <Route index element={<Dashboard />} />
+            <Route path="create" element={<CreateEditPage />} />
             <Route path=":interviewId" element={<CreateEditPage />} />
             <Route path="interview/:interviewId" element={<MockLoadPage />} />
             <Route
@@ -59,6 +67,14 @@ const App = () => {
       </Routes>
     </Router>
   );
+
+  // If in development mode, wrap with MockAuthProvider
+  if (isDevelopmentMode) {
+    return <MockAuthProvider>{appContent}</MockAuthProvider>;
+  }
+
+  // Otherwise, return the app content directly
+  return appContent;
 };
 
 export default App;

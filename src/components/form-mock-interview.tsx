@@ -7,7 +7,6 @@ import { Interview } from "@/types";
 import { CustomBreadCrumb } from "./custom-bread-crumb";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { Headings } from "./headings";
 import { Button } from "./ui/button";
@@ -23,14 +22,8 @@ import {
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { chatSession } from "@/scripts";
-import {
-  addDoc,
-  collection,
-  doc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "@/config/firebase.config";
+import dataService from "@/services/data.service";
+import { useAuthSafe } from "@/handlers/auth-handler";
 
 interface FormMockInterviewProps {
   initialData: Interview | null;
@@ -59,7 +52,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
   const { isValid, isSubmitting } = form.formState;
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId } = useAuthSafe();
 
   const title = initialData
     ? initialData.position
@@ -122,16 +115,23 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
     try {
       setLoading(true);
 
+      if (!userId) {
+        toast.error("Authentication Error", {
+          description: "You must be signed in to create or update interviews.",
+        });
+        return;
+      }
+
       if (initialData) {
-        // update
+        // update existing interview
         if (isValid) {
           const aiResult = await generateAiResponse(data);
 
-          await updateDoc(doc(db, "interviews", initialData?.id), {
+          await dataService.updateInterview(initialData.id, {
             questions: aiResult,
             ...data,
-            updatedAt: serverTimestamp(),
-          }).catch((error) => console.log(error));
+          });
+
           toast(toastMessage.title, { description: toastMessage.description });
         }
       } else {
@@ -139,11 +139,10 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
         if (isValid) {
           const aiResult = await generateAiResponse(data);
 
-          await addDoc(collection(db, "interviews"), {
+          await dataService.createInterview({
             ...data,
             userId,
             questions: aiResult,
-            createdAt: serverTimestamp(),
           });
 
           toast(toastMessage.title, { description: toastMessage.description });
@@ -153,7 +152,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
       navigate("/generate", { replace: true });
     } catch (error) {
       console.log(error);
-      toast.error("Error..", {
+      toast.error("Error", {
         description: `Something went wrong. Please try again later`,
       });
     } finally {

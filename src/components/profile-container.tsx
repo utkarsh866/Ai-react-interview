@@ -1,10 +1,18 @@
-import { useAuth, UserButton } from "@clerk/clerk-react";
+import { UserButton } from "@clerk/clerk-react";
 import { Loader } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
+import { MockUserButton } from "@/provider/mock-auth-provider";
+import { useAuthSafe } from "@/handlers/auth-handler";
 
 export const ProfileContainer = () => {
-  const { isSignedIn, isLoaded } = useAuth();
+  // Check if we're in development mode with mock credentials
+  const isDevelopmentMode = import.meta.env.DEV &&
+    (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY === 'pk_test_mock_clerk_key_12345' ||
+     !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+
+  // Use our safe auth hook
+  const { isSignedIn, isLoaded } = useAuthSafe();
 
   if (!isLoaded) {
     return (
@@ -17,7 +25,11 @@ export const ProfileContainer = () => {
   return (
     <div className="flex items-center gap-6">
       {isSignedIn ? (
-        <UserButton afterSignOutUrl="/" />
+        isDevelopmentMode ? (
+          <MockUserButton afterSignOutUrl="/" />
+        ) : (
+          <UserButton afterSignOutUrl="/" />
+        )
       ) : (
         <Link to={"/signin"}>
           <Button size={"sm"}>Get Started</Button>

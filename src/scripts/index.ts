@@ -4,9 +4,18 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY!;
-const genAI = new GoogleGenerativeAI(apiKey);
+// Get API key from environment variables
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
+// Check if API key exists
+if (!apiKey) {
+  console.warn("Warning: Missing Gemini API Key. AI features will not work properly.");
+}
+
+// Initialize the Google Generative AI with the API key or a placeholder
+const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_development');
+
+// Get the generative model
 const model = genAI.getGenerativeModel({
   model: "gemini-2.0-flash-exp",
 });
